@@ -27,7 +27,7 @@
     <h1>AI Sandbox Display Portal</h1>
     
     <div style="text-align: center; margin-bottom: 30px;">
-        <a href="PASTE_YOUR_SHORTENED_GOOGLE_FORM_LINK_HERE" target="_blank" class="submit-btn">+ Submit New AI Asset</a>
+        <a href="https://forms.google.com" target="_blank" class="submit-btn">+ Submit New AI Asset</a>
     </div>
 
     <div id="sandbox-grid" class="grid">Loading assets...</div>
@@ -59,31 +59,4 @@
                         let badgeClass = 'level-1';
                         if (level.includes('Level 2')) badgeClass = 'level-2';
                         if (level.includes('Level 3')) badgeClass = 'level-3';
-                        if (level.includes('Level 4')) badgeClass = 'level-4';
-
-                        const cardHtml = `
-                            <div class="card">
-                                <div>
-                                    <div class="badge ${badgeClass}">${level}</div>
-                                    <div class="title">${title}</div>
-                                    <p class="pitch">${pitch}</p>
-                                </div>
-                                <a href="${url}" target="_blank" class="btn">Launch Asset</a>
-                            </div>
-                        `;
-                        container.innerHTML += cardHtml;
-                    }
-                });
-                
-                // If no valid data rows are found after parsing
-                if (container.innerHTML === '') {
-                    container.innerHTML = '<p style="text-align:center; width:100%;">No assets approved or visible yet. Hit the green button above to submit the first one!</p>';
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                document.getElementById('sandbox-grid').innerHTML = 'Error loading sandbox entries. Please confirm your Google Sheet sharing is set to "Anyone with the link can view".';
-            });
-    </script>
-</body>
-</html>
+                        if (level.includes('Level 4')) badgeClass =

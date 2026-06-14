@@ -33,10 +33,71 @@
     <div id="sandbox-grid" class="grid">Loading assets...</div>
 
     <script>
-        // Target Spreadsheet ID and Specific Form Responses Tab GID
         const SHEET_ID = '1E5dEs2xtA5T6l_KgDf5hrifmdUIu49-GinF52NHQJtg';
         const GID = '1880285388';
-        
-        // Generates a unique number on every page load to bypass Google's data caching
         const cacheBuster = Math.random();
-        const jsonUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/
+        const jsonUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}&cb=${cacheBuster}`;
+
+        fetch(jsonUrl)
+            .then(res => res.text())
+            .then(data => {
+                const rawJson = JSON.parse(data.substr(47).slice(0, -2));
+                const headers = rawJson.table.cols;
+                const rows = rawJson.table.rows;
+                const container = document.getElementById('sandbox-grid');
+                container.innerHTML = '';
+
+                // Dynamically map column positions by checking header labels
+                let titleIdx = -1, levelIdx = -1, urlIdx = -1, pitchIdx = -1;
+                headers.forEach((col, idx) => {
+                    if (!col.label) return;
+                    const label = col.label.toLowerCase();
+                    if (label.includes('title')) titleIdx = idx;
+                    if (label.includes('level') || label.includes('tier')) levelIdx = idx;
+                    if (label.includes('link') || label.includes('url')) urlIdx = idx;
+                    if (label.includes('pitch') || label.includes('description')) pitchIdx = idx;
+                });
+
+                // Fallback to defaults if headers aren't explicitly named
+                if (titleIdx === -1) titleIdx = 1;
+                if (levelIdx === -1) levelIdx = 2;
+                if (urlIdx === -1) urlIdx = 4;
+                if (pitchIdx === -1) pitchIdx = 5;
+
+                rows.forEach(row => {
+                    if (row.c && row.c[titleIdx] && row.c[titleIdx].v) {
+                        const title = row.c[titleIdx].v;
+                        const level = (row.c[levelIdx] && row.c[levelIdx].v) ? row.c[levelIdx].v : 'Level 1';
+                        const url = (row.c[urlIdx] && row.c[urlIdx].v) ? row.c[urlIdx].v : '#';
+                        const pitch = (row.c[pitchIdx] && row.c[pitchIdx].v) ? row.c[pitchIdx].v : '';
+                        
+                        let badgeClass = 'level-1';
+                        if (level.includes('Level 2')) badgeClass = 'level-2';
+                        if (level.includes('Level 3')) badgeClass = 'level-3';
+                        if (level.includes('Level 4')) badgeClass = 'level-4';
+
+                        const cardHtml = `
+                            <div class="card">
+                                <div>
+                                    <div class="badge ${badgeClass}">${level}</div>
+                                    <div class="title">${title}</div>
+                                    <p class="pitch">${pitch}</p>
+                                </div>
+                                <a href="${url}" target="_blank" class="btn">Launch Asset</a>
+                            </div>
+                        `;
+                        container.innerHTML += cardHtml;
+                    }
+                });
+                
+                if (container.innerHTML === '') {
+                    container.innerHTML = '<p style="text-align:center; width:100%;">No assets visible yet. Hit the green button above to submit the first one!</p>';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('sandbox-grid').innerHTML = 'Error loading sandbox entries. Please confirm your Google Sheet sharing is set to "Anyone with the link can view".';
+            });
+    </script>
+</body>
+</html>

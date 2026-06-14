@@ -33,12 +33,10 @@
     <div id="sandbox-grid" class="grid">Loading assets...</div>
 
     <script>
-        // Exact configuration mapped directly to your live URL parameters
+        // Target Spreadsheet ID and Specific Form Responses Tab GID
         const SHEET_ID = '1E5dEs2xtA5T6l_KgDf5hrifmdUIu49-GinF52NHQJtg';
         const GID = '1880285388';
-        const jsonUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
-
-        fetch(jsonUrl)
-            .then(res => res.text())
-            .then(data => {
-                // Strip
+        
+        // Generates a unique number on every page load to bypass Google's data caching
+        const cacheBuster = Math.random();
+        const jsonUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/

@@ -27,7 +27,7 @@
     <h1>AI Sandbox Display Portal</h1>
     
     <div style="text-align: center; margin-bottom: 30px;">
-        <a href="https://forms.google.com" target="_blank" class="submit-btn">+ Submit New AI Asset</a>
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSemj0Y7UXgx9u5P4zWCn388cahZoTYM1-yt5EsvjKUJ9Q6Dfw/viewform" target="_blank" class="submit-btn">+ Submit New AI Asset</a>
     </div>
 
     <div id="sandbox-grid" class="grid">Loading assets...</div>
@@ -41,22 +41,4 @@
         fetch(jsonUrl)
             .then(res => res.text())
             .then(data => {
-                // Strip the Google structural wrapper to isolate raw data JSON object
-                const rawJson = JSON.parse(data.substr(47).slice(0, -2));
-                const rows = rawJson.table.rows;
-                const container = document.getElementById('sandbox-grid');
-                container.innerHTML = '';
-
-                rows.forEach(row => {
-                    // Check if row has data cells before building structural cards
-                    if (row.c && row.c[1]) {
-                        const title = row.c[1].v;
-                        const level = row.c[2] ? row.c[2].v : 'Level 1';
-                        const url = row.c[4] ? row.c[4].v : '#';
-                        const pitch = row.c[5] ? row.c[5].v : '';
-                        
-                        // Pick CSS class indicator based on string match tags
-                        let badgeClass = 'level-1';
-                        if (level.includes('Level 2')) badgeClass = 'level-2';
-                        if (level.includes('Level 3')) badgeClass = 'level-3';
-                        if (level.includes('Level 4')) badgeClass =
+                // Strip

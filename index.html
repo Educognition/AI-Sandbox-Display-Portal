@@ -7,19 +7,37 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f9; color: #333; padding: 20px; }
         h1 { color: #1e293b; text-align: center; margin-bottom: 10px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; }
+        
+        /* Category Row Styling */
+        .category-container { margin-bottom: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); overflow: hidden; }
+        .category-header { background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px 20px; font-size: 1.2rem; font-weight: bold; color: #1e293b; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; }
+        .category-header:hover { background: #f1f5f9; }
+        .category-header::after { content: '▼'; font-size: 0.8rem; color: #64748b; transition: transform 0.2s; }
+        .category-container.open .category-header::after { transform: rotate(180deg); }
+        
+        /* Hidden Content Grid Area */
+        .category-content { display: none; padding: 20px; border-top: 1px solid #e2e8f0; background: #fafafa; }
+        .category-container.open .category-content { display: block; }
+        
+        /* Responsive Grid Matrix */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #edf2f7; display: flex; flex-direction: column; justify-content: space-between; }
         .title { font-size: 1.2rem; font-weight: bold; margin-bottom: 8px; color: #0f172a; }
         .badge { display: inline-block; padding: 4px 8px; font-size: 0.75rem; font-weight: bold; border-radius: 4px; margin-bottom: 12px; width: fit-content; }
+        
+        /* Tier Level Badges */
         .level-1 { background: #dcfce7; color: #166534; }
         .level-2 { background: #fef9c3; color: #854d0e; }
         .level-3 { background: #ffedd5; color: #9a3412; }
         .level-4 { background: #dbeafe; color: #1e40af; }
+        
         .pitch { font-size: 0.95rem; color: #475569; margin-bottom: 16px; flex-grow: 1; }
         .btn { display: block; text-align: center; background: #2563eb; color: white; padding: 10px; border-radius: 6px; text-decoration: none; font-weight: bold; }
         .btn:hover { background: #1d4ed8; }
+        
         .submit-btn { display: inline-block; background: #16a34a; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 1rem; transition: background 0.2s; }
         .submit-btn:hover { background: #15803d; }
+        .count-badge { background: #e2e8f0; color: #475569; font-size: 0.85rem; padding: 2px 8px; border-radius: 12px; margin-left: 10px; }
     </style>
 </head>
 <body>
@@ -30,7 +48,7 @@
         <a href="https://docs.google.com/forms/d/e/1FAIpQLSemj0Y7UXgx9u5P4zWCn388cahZoTYM1-yt5EsvjKUJ9Q6Dfw/viewform" target="_blank" class="submit-btn">+ Submit New AI Asset</a>
     </div>
 
-    <div id="sandbox-grid" class="grid">Loading assets...</div>
+    <div id="categories-root">Loading directory categories...</div>
 
     <script>
         const SHEET_ID = '1E5dEs2xtA5T6l_KgDf5hrifmdUIu49-GinF52NHQJtg';
@@ -44,59 +62,100 @@
                 const rawJson = JSON.parse(data.substr(47).slice(0, -2));
                 const headers = rawJson.table.cols;
                 const rows = rawJson.table.rows;
-                const container = document.getElementById('sandbox-grid');
-                container.innerHTML = '';
+                const rootContainer = document.getElementById('categories-root');
+                rootContainer.innerHTML = '';
 
-                // Dynamically map column positions by checking header labels
-                let titleIdx = -1, levelIdx = -1, urlIdx = -1, pitchIdx = -1;
+                // Dynamically locate column indices based on header names
+                let titleIdx = 1, levelIdx = 2, categoryIdx = 3, urlIdx = 4, pitchIdx = 5;
                 headers.forEach((col, idx) => {
                     if (!col.label) return;
                     const label = col.label.toLowerCase();
                     if (label.includes('title')) titleIdx = idx;
                     if (label.includes('level') || label.includes('tier')) levelIdx = idx;
+                    if (label.includes('focus') || label.includes('category') || label.includes('area')) categoryIdx = idx;
                     if (label.includes('link') || label.includes('url')) urlIdx = idx;
                     if (label.includes('pitch') || label.includes('description')) pitchIdx = idx;
                 });
 
-                // Fallback to defaults if headers aren't explicitly named
-                if (titleIdx === -1) titleIdx = 1;
-                if (levelIdx === -1) levelIdx = 2;
-                if (urlIdx === -1) urlIdx = 4;
-                if (pitchIdx === -1) pitchIdx = 5;
+                // Object framework to automatically cluster data rows by category name
+                const categorizedData = {};
 
                 rows.forEach(row => {
                     if (row.c && row.c[titleIdx] && row.c[titleIdx].v) {
                         const title = row.c[titleIdx].v;
                         const level = (row.c[levelIdx] && row.c[levelIdx].v) ? row.c[levelIdx].v : 'Level 1';
+                        // Normalize category string names, defaulting to General if left blank
+                        let category = (row.c[categoryIdx] && row.c[categoryIdx].v) ? row.c[categoryIdx].v.trim() : 'General Resources';
                         const url = (row.c[urlIdx] && row.c[urlIdx].v) ? row.c[urlIdx].v : '#';
                         const pitch = (row.c[pitchIdx] && row.c[pitchIdx].v) ? row.c[pitchIdx].v : '';
-                        
+
+                        if (!categorizedData[category]) {
+                            categorizedData[category] = [];
+                        }
+
+                        categorizedData[category].push({ title, level, url, pitch });
+                    }
+                });
+
+                const categories = Object.keys(categorizedData).sort();
+
+                if (categories.length === 0) {
+                    rootContainer.innerHTML = '<p style="text-align:center;">No assets submitted yet. Hit the green button above to submit the first one!</p>';
+                    return;
+                }
+
+                // Programmatically generate HTML container rows for each subject group discovered
+                categories.forEach(catName => {
+                    const assets = categorizedData[catName];
+                    
+                    const catContainer = document.createElement('div');
+                    catContainer.className = 'category-container';
+
+                    // Create folder-style header bar with an asset counter badge
+                    const header = document.createElement('div');
+                    header.className = 'category-header';
+                    header.innerHTML = `<span>📂 ${catName} <span class="count-badge">${assets.length}</span></span>`;
+                    
+                    const contentArea = document.createElement('div');
+                    contentArea.className = 'category-content';
+                    
+                    const grid = document.createElement('div');
+                    grid.className = 'grid';
+
+                    // Build visual asset icon cards within this subject cluster
+                    assets.forEach(asset => {
                         let badgeClass = 'level-1';
-                        if (level.includes('Level 2')) badgeClass = 'level-2';
-                        if (level.includes('Level 3')) badgeClass = 'level-3';
-                        if (level.includes('Level 4')) badgeClass = 'level-4';
+                        if (asset.level.includes('Level 2')) badgeClass = 'level-2';
+                        if (asset.level.includes('Level 3')) badgeClass = 'level-3';
+                        if (asset.level.includes('Level 4')) badgeClass = 'level-4';
 
                         const cardHtml = `
                             <div class="card">
                                 <div>
-                                    <div class="badge ${badgeClass}">${level}</div>
-                                    <div class="title">${title}</div>
-                                    <p class="pitch">${pitch}</p>
+                                    <div class="badge ${badgeClass}">${asset.level}</div>
+                                    <div class="title">${asset.title}</div>
+                                    <p class="pitch">${asset.pitch}</p>
                                 </div>
-                                <a href="${url}" target="_blank" class="btn">Launch Asset</a>
+                                <a href="${asset.url}" target="_blank" class="btn">Launch Asset</a>
                             </div>
                         `;
-                        container.innerHTML += cardHtml;
-                    }
+                        grid.innerHTML += cardHtml;
+                    });
+
+                    contentArea.appendChild(grid);
+                    catContainer.appendChild(header);
+                    catContainer.appendChild(contentArea);
+                    rootContainer.appendChild(catContainer);
+
+                    // Add clicking functionality to slide panels open and closed smoothly
+                    header.addEventListener('click', () => {
+                        catContainer.classList.toggle('open');
+                    });
                 });
-                
-                if (container.innerHTML === '') {
-                    container.innerHTML = '<p style="text-align:center; width:100%;">No assets visible yet. Hit the green button above to submit the first one!</p>';
-                }
             })
             .catch(err => {
                 console.error(err);
-                document.getElementById('sandbox-grid').innerHTML = 'Error loading sandbox entries. Please confirm your Google Sheet sharing is set to "Anyone with the link can view".';
+                document.getElementById('categories-root').innerHTML = 'Error loading sandbox categories. Please verify your Google Sheet sharing permissions are open.';
             });
     </script>
 </body>
